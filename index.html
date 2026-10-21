@@ -318,7 +318,7 @@
     // AI 识别交给 Supabase Edge Function（超时上限 150 秒，比各家免费版函数宽得多）。
     // 好处：前端可以是纯静态托管（Cloudflare Pages / 任意静态空间），
     // 不再依赖 Vercel、Netlify 这类在国内访问不稳的平台。
-    const AI_ENDPOINT = 'https://umatcwaodotqpttbuwew.supabase.co/functions/v1/ai';
+    const AI_ENDPOINT = 'https://umatcwaodotqpttbuwew.supabase.co/functions/v1/bright-worker';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
     });
