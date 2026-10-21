@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <!-- 背景圆角方块 -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+  <!-- 汽车车身 -->
+  <path d="M120 300 L140 220 Q150 190 180 190 L330 190 Q360 190 370 220 L390 300 L410 300 Q420 300 420 310 L420 340 Q420 350 410 350 L390 350 L390 370 Q390 380 380 380 L360 380 Q350 380 350 370 L350 350 L170 350 L170 370 Q170 380 160 380 L140 380 Q130 380 130 370 L130 350 L110 350 Q100 350 100 340 L100 310 Q100 300 110 300 Z" fill="#ffffff"/>
+  <!-- 车窗 -->
+  <path d="M180 220 Q190 200 210 200 L250 200 L250 260 L170 260 Z" fill="#3b82f6" opacity="0.4"/>
+  <path d="M270 200 L310 200 Q330 200 340 220 L355 260 L270 260 Z" fill="#3b82f6" opacity="0.4"/>
+  <!-- 车轮 -->
+  <circle cx="170" cy="350" r="30" fill="#2c3e50"/>
+  <circle cx="170" cy="350" r="15" fill="#ecf0f1"/>
+  <circle cx="350" cy="350" r="30" fill="#2c3e50"/>
+  <circle cx="350" cy="350" r="15" fill="#ecf0f1"/>
+</svg>

@@ -1,0 +1,9 @@
+{
+  "buildCommand": "node scripts/build.mjs",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/ai.js": {
+      "maxDuration": 60
+    }
+  }
+}

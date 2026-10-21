@@ -1,0 +1,17 @@
+# Netlify 部署配置
+#
+# 构建只把「该公开的东西」拷进 dist：
+#   index.html / manifest.json / icon.svg / vendor/（本地化的两个依赖库）
+# 这样 api/、scripts/、supabase/、*.bak 不会被发布到公网。
+
+[build]
+  command = "node scripts/build.mjs"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+# 前端调用 /api/ai，函数内部已用 config.path = '/api/ai' 声明同名路由，
+# 由 Netlify 的函数路由表直接接管，不需要额外的 redirect。
+# 注意：不要在这里再写 /api/ai 的 force 重写，会把请求劫持到
+# /.netlify/functions/ai 这个 v2 函数并不对外暴露的旧路径，导致 404。

@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>施工单云端系统</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="施工单">
+    <link rel="apple-touch-icon" href="icon.svg">
+
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://umatcwaodotqpttbuwew.supabase.co; base-uri 'none'; object-src 'none'; form-action 'self'">
+
+    <script src="vendor/supabase.js"></script>
+    <script src="vendor/html2canvas.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: #f4f6f8; padding: 16px; padding-bottom: 20px; color: #333; }
+        .app-container { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; min-height: calc(100vh - 32px); }
+
+        #netlify-identity-widget, .netlify-badge, iframe[title="Netlify"] { display: none !important; }
+
+        .main-content { flex: 1; }
+
+        .card { background-color: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04); margin-bottom: 20px; }
+        .section-title { font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 12px 0; padding-left: 8px; border-left: 3px solid #3b82f6; line-height: 1; }
+        .section-title:first-child { margin-top: 0; }
+
+        .btn-ai-scan { background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
+        .btn-ai-scan:disabled { background: #cbd5e1; box-shadow: none; cursor: not-allowed; }
+
+        .form-group { display: flex; align-items: center; margin-bottom: 12px; }
+        .form-label { width: 70px; text-align: right; margin-right: 12px; color: #555; font-size: 14px; flex-shrink: 0; }
+        .form-control { flex: 1; height: 38px; padding: 0 12px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; color: #333; outline: none; background: #fafafa; }
+        .form-control:focus { border-color: #3b82f6; background: white; }
+
+        .unit-input { flex: 1; display: flex; align-items: center; border: 1px solid #dcdfe6; border-radius: 6px; padding-right: 12px; background: #fafafa; height: 38px; }
+        .unit-input:focus-within { border-color: #3b82f6; background: white; }
+        .unit-input input { border: none; height: 36px; outline: none; flex: 1; padding: 0 12px; background: transparent; font-size: 14px; }
+        .unit-input span { color: #666; font-size: 14px; flex-shrink: 0; }
+
+        .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+        .photo-box { aspect-ratio: 1; border: 1px dashed #b3c0d1; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; position: relative; overflow: hidden; background: #f8fafc; }
+        .photo-box input[type="file"] { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0; z-index: 1; }
+        .photo-box span { color: #94a3b8; font-size: 11px; z-index: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .photo-box span i { font-size: 20px; font-style: normal; }
+
+        .btn-add { background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
+
+        .list-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+        .list-table th, .list-table td { padding: 10px 6px; text-align: left; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+        .list-table th { color: #64748b; font-weight: 600; background: #f8fafc; }
+        .btn-delete { color: #ef4444; cursor: pointer; font-weight: bold; text-align: center; }
+        .total-price { text-align: right; margin-top: 12px; font-size: 15px; font-weight: bold; color: #f59e0b; }
+        .empty-list { text-align: center; color: #94a3b8; font-size: 13px; padding: 20px 0; background: #f8fafc; border-radius: 6px; }
+
+        .action-bar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        .btn-save { background: #f59e0b; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn-save:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .btn-history-full { background: #8b5cf6; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 6px; }
+
+        .detail-action-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .btn-back { background: #fff; border: 1px solid #dcdfe6; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; color: #555; font-size: 15px; text-align: center;}
+        .btn-print-text { background: #10b981; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; text-align: center;}
+
+        .bottom-controls { margin-top: auto; padding-top: 10px; display: flex; justify-content: flex-start; }
+        .btn-logout { background: #fff; color: #ef4444; border: 1px solid #fecaca; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(2px); }
+        .modal-content { background: white; padding: 20px; border-radius: 16px; width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto; }
+
+        .history-item { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #f1f5f9; align-items: center;}
+        .history-info h4 { color: #1e293b; margin-bottom: 6px; font-size: 15px; font-weight: bold;}
+        .history-info p { font-size: 13px; color: #f59e0b; font-weight: bold; margin-top: 4px;}
+        .history-info .time { font-size: 11px; color: #94a3b8; font-weight: normal; margin-top: 6px;}
+        .plate-tag { background: #eff6ff; color: #3b82f6; font-size: 12px; padding: 2px 6px; border-radius: 4px; border: 1px solid #bfdbfe; margin-right: 6px;}
+
+        .plate-search-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .plate-search-box { flex: 1; position: relative; display: flex; align-items: center; }
+        .plate-search-box input { width: 100%; height: 40px; padding: 0 34px 0 34px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px; outline: none; background: #fafafa; color: #333; }
+        .plate-search-box input:focus { border-color: #3b82f6; background: white; }
+        .plate-search-box .search-icon { position: absolute; left: 11px; font-size: 14px; color: #94a3b8; pointer-events: none; }
+        .plate-search-clear { position: absolute; right: 6px; width: 24px; height: 24px; line-height: 22px; border: none; border-radius: 50%; background: #e2e8f0; color: #64748b; font-size: 12px; cursor: pointer; display: none; padding: 0; }
+        .plate-search-clear.show { display: block; }
+        .btn-search { height: 40px; padding: 0 16px; border: none; border-radius: 8px; background: #3b82f6; color: white; font-size: 14px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+        .history-count { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+
+        .btn-view { background: #eff6ff; color: #3b82f6; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn-del-order { background: #fef2f2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; margin-left: 8px; }
+
+        .image-lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: none; justify-content: center; align-items: center; z-index: 9999; cursor: zoom-out; }
+        .image-lightbox img { max-width: 95%; max-height: 95%; object-fit: contain; border-radius: 8px; }
+
+        .detail-item-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .detail-item-left { flex: 1; }
+        .detail-item-title { font-size: 16px; font-weight: bold; color: #1e293b; margin-bottom: 6px; }
+        .detail-item-meta { font-size: 13px; color: #475569; margin-top: 4px; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; display: inline-block; }
+        .detail-item-right { text-align: right; min-width: 70px; }
+        .detail-item-price { font-size: 16px; font-weight: bold; color: #f59e0b; margin-bottom: 4px; }
+        .detail-item-warranty { font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; display: inline-block;}
+
+        .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .auth-card { width: 100%; max-width: 380px; background: white; border-radius: 16px; padding: 32px 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .auth-card h2 { text-align: center; color: #1e293b; margin-bottom: 24px; font-size: 20px;}
+        .auth-tabs { display: flex; background: #f1f5f9; border-radius: 8px; padding: 4px; margin-bottom: 20px; }
+        .auth-tab { flex: 1; text-align: center; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; color: #64748b; transition: all 0.2s;}
+        .auth-tab.active { background: white; color: #3b82f6; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .auth-btn { background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px;}
+        .auth-msg { text-align: center; font-size: 13px; margin-top: 12px; min-height: 20px; color: #ef4444; }
+
+        #customAlertMask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); z-index: 999999; display: none; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .custom-alert-box { background: white; border-radius: 12px; width: 80%; max-width: 300px; padding: 24px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); animation: popIn 0.2s ease-out; position: relative; z-index: 1000000;}
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .custom-alert-box p { font-size: 15px; color: #333; margin-bottom: 20px; line-height: 1.5; font-weight: 500;}
+        .custom-alert-box button { background: #3b82f6; color: white; border: none; padding: 10px 0; width: 100%; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+
+        #textPrintModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; flex-direction: column; padding: 20px; }
+        .text-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .text-area { flex: 1; width: 100%; border: none; outline: none; resize: none; font-family: monospace; font-size: 14px; line-height: 1.5; color: #000; background: #f9f9f9; padding: 15px; border-radius: 8px; }
+        .btn-close-text { background: #f1f5f9; color: #333; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-copy { background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 登录/注册界面 ==================== -->
+<div class="auth-wrap" id="authWrap" style="display:none;">
+    <div class="auth-card">
+        <h2>🚗 施工单系统</h2>
+        <div class="auth-tabs">
+            <div class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">登录</div>
+            <div class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">注册</div>
+        </div>
+
+        <div id="loginForm">
+            <div class="form-group"><label class="form-label" style="width:50px;">账号：</label><input type="text" id="loginUser" class="form-control" placeholder="输入账号" maxlength="20" autocomplete="username"></div>
+            <div class="form-group"><label class="form-label" style="width:50px;">密码：</label><input type="password" id="loginPass" class="form-control" placeholder="输入密码" maxlength="72" autocomplete="current-password"></div>
+            <button class="auth-btn" onclick="doLogin()">登 录</button>
+            <div class="auth-msg" id="loginMsg"></div>
+        </div>
+
+        <div id="registerForm" style="display:none;">
+            <div class="form-group"><label class="form-label" style="width:50px;">账号：</label><input type="text" id="regUser" class="form-control" placeholder="字母/数字，2-20 位" maxlength="20" autocomplete="username"></div>
+            <div class="form-group"><label class="form-label" style="width:50px;">密码：</label><input type="password" id="regPass" class="form-control" placeholder="至少 6 位" maxlength="72" autocomplete="new-password"></div>
+            <button class="auth-btn" onclick="doRegister()">注 册</button>
+            <div class="auth-msg" id="regMsg"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 主系统 ==================== -->
+<div class="app-container" id="appWrap" style="display:none;">
+    <div class="main-content">
+        <!-- 新建视图 (主界面) -->
+        <div id="createView" style="display: block;">
+            <div class="card">
+                <div class="section-title">1. 添加施工项目</div>
+
+                <!-- AI 拍照识别按钮 -->
+                <button class="btn-ai-scan" id="aiScanBtn" onclick="startAIScan()">📷 AI 拍照识别车牌/车型</button>
+
+                <!-- 车牌与车型 -->
+                <div class="form-group"><label class="form-label" style="color:#3b82f6; font-weight:bold;">车牌号：</label><input type="text" id="carPlate" class="form-control" placeholder="例如：川C·D61785" style="font-weight:bold;"></div>
+                <div class="form-group"><label class="form-label">车型：</label><input type="text" id="carModel" class="form-control" placeholder="例如：吉利几何、保时捷"></div>
+
+                <div class="form-group">
+                    <label class="form-label">大类：</label>
+                    <select id="itemCategory" class="form-control">
+                        <option value="汽车玻璃膜">汽车玻璃膜</option>
+                        <option value="汽车改色膜">汽车改色膜</option>
+                        <option value="隐形车衣">隐形车衣</option>
+                        <option value="汽车脚垫">汽车脚垫</option>
+                        <option value="汽车360全景影像">汽车360全景影像</option>
+                        <option value="汽车内饰改装">汽车内饰改装</option>
+                        <option value="氛围灯">氛围灯</option>
+                        <option value="方向套">方向套</option>
+                        <option value="其他项目">其他项目</option>
+                    </select>
+                </div>
+
+                <div class="form-group"><label class="form-label">施工部位：</label><input type="text" id="itemPart" class="form-control" placeholder="例如：前挡、全车、主驾"></div>
+                <div class="form-group"><label class="form-label">品牌：</label><input type="text" id="itemBrand" class="form-control" placeholder="例如：威固、龙膜"></div>
+
+                <div class="form-group">
+                    <label class="form-label">价格：</label>
+                    <div class="unit-input"><input type="number" id="itemPrice" placeholder="金额"><span>元</span></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">质保期：</label>
+                    <div style="flex:1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <input type="number" id="itemWarrantyNum" class="form-control" style="width: 100%;" placeholder="数字" value="5">
+                        <select id="itemWarrantyUnit" class="form-control" style="width: 100%; padding-left: 8px;">
+                            <option value="年">年</option><option value="个月">个月</option><option value="终身">终身</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-add" id="addBtn">+ 加入清单</button>
+
+                <div class="section-title">2. 施工清单</div>
+                <div id="emptyTip" class="empty-list">暂无施工项目，请先添加</div>
+                <table class="list-table" id="listTable" style="display: none;">
+                    <thead><tr><th>项目明细</th><th>价格</th><th style="text-align:center;">操作</th></tr></thead>
+                    <tbody id="listBody"></tbody>
+                </table>
+                <div id="totalPriceBox" class="total-price" style="display: none;">总计: ￥0 元</div>
+
+                <div class="section-title">3. 施工拍照留存 (支持多选)</div>
+                <div class="photo-grid">
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img0" src=""></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img1" src=""></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img2" src=""></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img3" src=""></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img4" src=""></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img5" src=""></label>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn-save" id="saveBtn" onclick="saveOrder()">💾 保存到云端</button>
+                <button class="btn-history-full" onclick="showView('history')">📂 已施工订单记录</button>
+            </div>
+        </div>
+
+        <!-- 历史详情视图 -->
+        <div id="detailView" style="display: none;">
+            <div class="detail-action-bar">
+                <button class="btn-back" onclick="showView('history')">⬅ 返回订单记录</button>
+                <button class="btn-print-text" onclick="showTextPrint()">🖨️ 打印订单</button>
+            </div>
+
+            <div class="card" id="printArea">
+                <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">车辆施工单</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px dashed #eee; padding-bottom:10px;">
+                    <div style="font-size:20px; font-weight:bold; color:#1e293b;" id="dCarPlate">未填写车牌</div>
+                    <div style="font-size:14px; color:#64748b; margin-top:6px;" id="dCarModel"></div>
+                </div>
+                <div style="color:#888; font-size:12px; margin-bottom: 15px;">施工时间：<span id="dCreateTime"></span></div>
+
+                <div class="section-title" style="margin-top: 0;">施工项目明细</div>
+                <div id="dListContainer"></div>
+                <div id="dTotalPrice" class="total-price" style="font-size: 18px; margin-top: 20px;"></div>
+
+                <div class="section-title">施工照片记录</div>
+                <div class="photo-grid" id="detailPhotoGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-controls" id="logoutWrap">
+        <button class="btn-logout" onclick="doLogout()">🚪 退出登录</button>
+    </div>
+</div>
+
+<!-- 隐藏的拍照输入框 (用于AI识别) -->
+<input type="file" id="aiCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="processAIScan(this)">
+
+<div class="modal-overlay" id="historyModal">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 15px; border-bottom:1px solid #eee; padding-bottom:10px;">已施工订单记录</h3>
+
+        <div class="plate-search-bar">
+            <div class="plate-search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="plateSearchInput" placeholder="通用车牌查询：输入车牌号 / 车型" autocomplete="off"
+                       oninput="onPlateSearchInput()" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); doPlateSearch(); }">
+                <button type="button" class="plate-search-clear" id="plateSearchClear" onclick="clearPlateSearch()" title="清空">✕</button>
+            </div>
+            <button type="button" class="btn-search" onclick="doPlateSearch()">查询</button>
+        </div>
+        <div class="history-count" id="historyCount"></div>
+
+        <div id="historyList" style="min-height: 100px;">加载中...</div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button style="flex:1; background:#10b981; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold;" onclick="downloadAllOrdersAsImage()">📸 打印汇总单</button>
+            <button style="flex:1; background:#f1f5f9; color:#64748b; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold;" onclick="showView('create')">关闭</button>
+        </div>
+    </div>
+</div>
+
+<div class="image-lightbox" id="lightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="" alt="预览">
+</div>
+
+<div id="customAlertMask" onclick="closeCustomAlert()">
+    <div class="custom-alert-box" onclick="event.stopPropagation()">
+        <p id="customAlertText">提示信息</p>
+        <button onclick="closeCustomAlert()">确定</button>
+    </div>
+</div>
+
+<div id="textPrintModal">
+    <div class="text-header">
+        <span style="font-weight:bold; font-size:16px;">订单文本 (可复制)</span>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-copy" onclick="copyTextToClipboard()">📋 复制</button>
+            <button class="btn-close-text" onclick="closeTextModal()">关闭</button>
+        </div>
+    </div>
+    <textarea class="text-area" id="textPrintArea" readonly></textarea>
+</div>
+
+<script>
+    // ========================================================
+    // Supabase 配置
+    // publishable key 本来就是公开的，真正保护数据的是数据库 RLS 策略
+    // 硅基流动的密钥已移到服务端（api/ai.js），前端不再持有任何 Access Key
+    // ========================================================
+    const SUPABASE_URL = 'https://umatcwaodotqpttbuwew.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ULquGaSNnY9G11RJcKLx_g_Xmcev2ig';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+    });
+
+    // 账号 -> 邮箱映射：Supabase Auth 用邮箱登录，界面上仍然只显示"账号"
+    const USER_DOMAIN = '@gongdan.local';
+    const toEmail = (u) => u.trim().toLowerCase() + USER_DOMAIN;
+
+    // 统一转义：任何外部数据进 innerHTML 前必须经过这里
+    function esc(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // 图片白名单：只接受 base64 图片或 https 图片，杜绝属性注入
+    function safeImgSrc(src) {
+        if (typeof src !== 'string') return '';
+        if (/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(src)) return src;
+        if (/^https:\/\/[^\s"'<>]+$/i.test(src)) return src;
+        return '';
+    }
+
+    // 金额校验：必须是 0 ~ 1000 万之间的有限数字，避免 1e999 变成 Infinity
+    function parseMoney(raw) {
+        const s = String(raw == null ? '' : raw).trim();
+        if (!/^\d+(\.\d{1,2})?$/.test(s)) return NaN;
+        const n = Number(s);
+        if (!Number.isFinite(n) || n > 10000000) return NaN;
+        return Math.round(n * 100) / 100;
+    }
+
+    function fmtMoney(n) {
+        const v = Number(n);
+        if (!Number.isFinite(v)) return '0';
+        return String(Math.round(v * 100) / 100);
+    }
+
+    let currentPhotos = ['', '', '', '', '', ''];
+    let currentItems = [];
+    let currentUser = '';
+    let currentUserId = '';
+    let allOrdersCache = [];
+    let currentDetailOrder = null;
+    let historyKeyword = '';
+
+    // === 启动：恢复 Supabase 登录会话 ===
+    function applySession(session) {
+        currentUserId = session.user.id;
+        const meta = session.user.user_metadata || {};
+        currentUser = meta.username || String(session.user.email || '').split('@')[0];
+        document.getElementById('authWrap').style.display = 'none';
+        document.getElementById('appWrap').style.display = 'flex';
+        document.getElementById('logoutWrap').style.display = 'flex';
+    }
+
+    async function restoreSession() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            applySession(session);
+        } else {
+            document.getElementById('authWrap').style.display = 'flex';
+            document.getElementById('appWrap').style.display = 'none';
+        }
+    }
+
+    window.onload = () => {
+        restoreSession().catch((e) => {
+            console.error(e);
+            document.getElementById('authWrap').style.display = 'flex';
+        });
+
+        // token 刷新 / 被踢下线时同步界面
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT') {
+                currentUser = '';
+                currentUserId = '';
+                document.getElementById('appWrap').style.display = 'none';
+                document.getElementById('authWrap').style.display = 'flex';
+            } else if (session && event === 'TOKEN_REFRESHED') {
+                currentUserId = session.user.id;
+            }
+        });
+    };
+
+    // === 账号逻辑 ===
+    function switchAuthTab(tab) {
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.auth-tab[data-tab="${tab}"]`).classList.add('active');
+        document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+        document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+        document.getElementById('loginMsg').textContent = '';
+        document.getElementById('regMsg').textContent = '';
+    }
+
+    async function doRegister() {
+        const user = document.getElementById('regUser').value.trim();
+        const pass = document.getElementById('regPass').value;
+        const msg = document.getElementById('regMsg');
+        msg.style.color = '#ef4444';
+
+        if (!/^[A-Za-z0-9_-]{2,20}$/.test(user)) {
+            msg.textContent = '账号需 2-20 位，只能用字母、数字、下划线、短横线'; return;
+        }
+        if (pass.length < 6) { msg.textContent = '密码至少 6 位'; return; }
+
+        msg.textContent = '正在注册...';
+        try {
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: toEmail(user),
+                password: pass,
+                options: { data: { username: user } }
+            });
+
+            if (error) {
+                const isDup = /already|registered|exists/i.test(error.message || '') || error.status === 422;
+                msg.textContent = isDup ? '该账号已被占用，请换一个' : '注册失败：' + (error.message || '未知错误');
+                return;
+            }
+
+            // 开启邮件确认时，重复注册不会报错，而是返回一个 identities 为空的假用户
+            if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+                msg.textContent = '该账号已被占用，请换一个';
+                return;
+            }
+
+            if (data.session) {
+                applySession(data.session);
+                showCustomAlert('✅ 注册成功，已自动登录');
+                return;
+            }
+
+            // 服务端开启了邮箱验证时不会直接给 session
+            msg.style.color = '#f59e0b';
+            msg.textContent = '账号已创建，但需要在 Supabase 后台关闭邮件确认后才能直接登录';
+        } catch (e) {
+            console.error(e);
+            msg.textContent = '注册失败，请稍后重试';
+        }
+    }
+
+    async function doLogin() {
+        const user = document.getElementById('loginUser').value.trim();
+        const pass = document.getElementById('loginPass').value;
+        const msg = document.getElementById('loginMsg');
+        msg.style.color = '#ef4444';
+
+        if (!user || !pass) { msg.textContent = '请输入账号密码'; return; }
+
+        msg.textContent = '正在登录...';
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: toEmail(user),
+                password: pass
+            });
+
+            if (error) {
+                // 不区分"账号不存在"和"密码错误"，避免账号枚举
+                msg.textContent = /invalid/i.test(error.message || '')
+                    ? '账号或密码错误'
+                    : '登录失败：' + (error.message || '未知错误');
+                return;
+            }
+
+            msg.textContent = '';
+            document.getElementById('loginPass').value = '';
+            applySession(data.session);
+        } catch (e) {
+            console.error(e);
+            msg.textContent = '登录失败，请稍后重试';
+        }
+    }
+
+    async function doLogout() {
+        if (!confirm('确定要退出当前账号吗？')) return;
+        try {
+            await supabaseClient.auth.signOut();
+        } catch (e) {
+            console.error(e);
+        }
+        currentUser = '';
+        currentUserId = '';
+        location.reload();
+    }
+
+    // === 常用功能 ===
+    function showCustomAlert(message) {
+        document.getElementById('customAlertText').textContent = message;
+        document.getElementById('customAlertMask').style.display = 'flex';
+    }
+    function closeCustomAlert() { document.getElementById('customAlertMask').style.display = 'none'; }
+    function openLightbox(src) { if(!src || src.indexOf('data:image/gif') === 0) return; document.getElementById('lightboxImg').src = src; document.getElementById('lightbox').style.display = 'flex'; }
+    function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; document.getElementById('lightboxImg').src = ''; }
+
+    function showView(view) {
+        if (view === 'create') {
+            document.getElementById('createView').style.display = 'block';
+            document.getElementById('detailView').style.display = 'none';
+            document.getElementById('historyModal').style.display = 'none';
+        } else if (view === 'detail') {
+            document.getElementById('createView').style.display = 'none';
+            document.getElementById('detailView').style.display = 'block';
+            document.getElementById('historyModal').style.display = 'none';
+        } else if (view === 'history') {
+            document.getElementById('createView').style.display = 'none';
+            document.getElementById('detailView').style.display = 'none';
+            document.getElementById('historyModal').style.display = 'flex';
+            renderHistoryList();
+        }
+        window.scrollTo(0, 0);
+    }
+
+    // === 处理多图上传 ===
+    const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+    function compressImage(base64Str, maxWidth = 800, quality = 0.6) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            // onerror 必须兜底，否则图片损坏时 await 会永远挂住
+            img.onerror = () => resolve('');
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    let width = img.naturalWidth || img.width;
+                    let height = img.naturalHeight || img.height;
+                    if (!width || !height) { resolve(''); return; }
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                } catch (e) {
+                    console.error(e);
+                    resolve('');
+                }
+            };
+            img.src = base64Str;
+        });
+    }
+
+    function isValidImageFile(file) {
+        if (!file) return false;
+        if (!/^image\//.test(file.type || '')) return false;
+        if (file.size > MAX_UPLOAD_BYTES) return false;
+        return true;
+    }
+
+    async function previewMultipleImages(input) {
+        if (input.files && input.files.length > 0) {
+            if (input.files.length > 6) {
+                showCustomAlert('⚠️ 最多只能一次上传 6 张图片，已为您截取前 6 张。');
+            }
+            const allFiles = Array.from(input.files);
+            const files = allFiles.filter(isValidImageFile).slice(0, 6);
+
+            if (files.length < allFiles.length) {
+                showCustomAlert('⚠️ 有图片格式不支持或超过 15MB，已自动跳过。');
+            }
+
+            let processedCount = 0;
+
+            for (let i = 0; i < 6; i++) {
+                if (currentPhotos[i] === '' && processedCount < files.length) {
+                    const file = files[processedCount];
+                    const reader = new FileReader();
+                    await new Promise((resolve) => {
+                        reader.onerror = () => resolve();
+                        reader.onload = async function(e) {
+                            const compressedData = await compressImage(e.target.result);
+                            if (compressedData) {
+                                document.getElementById('img' + i).src = compressedData;
+                                document.getElementById('img' + i).style.display = 'block';
+                                currentPhotos[i] = compressedData;
+                            }
+                            resolve();
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                    processedCount++;
+                }
+            }
+            input.value = '';
+        }
+    }
+
+    // === 核心功能：AI 拍照识别（经 /api/ai 代理，密钥不下发到浏览器） ===
+    function startAIScan() {
+        document.getElementById('aiCameraInput').click();
+    }
+
+    async function processAIScan(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        if (!isValidImageFile(file)) {
+            showCustomAlert('❌ 请选择 15MB 以内的图片');
+            input.value = '';
+            return;
+        }
+        const btn = document.getElementById('aiScanBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ AI 正在识别中，请稍候...';
+
+        try {
+            // 1. 压缩图片
+            const reader = new FileReader();
+            const base64Data = await new Promise((resolve) => {
+                reader.onerror = () => resolve('');
+                reader.onload = async (e) => {
+                    const compressed = await compressImage(e.target.result, 1024, 0.8);
+                    resolve(compressed);
+                };
+                reader.readAsDataURL(file);
+            });
+            if (!base64Data) throw new Error('图片读取失败，请重新拍摄');
+
+            // 2. 交给后端代理转发，密钥只存在服务端环境变量里
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) throw new Error('登录已失效，请重新登录');
+
+            const response = await fetch('/api/ai', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + session.access_token
+                },
+                body: JSON.stringify({ image: base64Data })
+            });
+
+            if (!response.ok) {
+                let detail = '请求失败: ' + response.status;
+                try {
+                    const errBody = await response.json();
+                    if (errBody && errBody.error) detail = errBody.error;
+                } catch (_) { /* 响应不是 JSON，保留原始状态码 */ }
+                throw new Error(detail);
+            }
+
+            // 3. 服务端已经把 AI 回复解析成 { plate, model, raw }
+            const result = await response.json();
+            const pick = (v, max) => {
+                const s = typeof v === 'string' ? v.trim().slice(0, max) : '';
+                return (s && s !== '未识别') ? s : '';
+            };
+            const plate = pick(result.plate, 20);
+            const model = pick(result.model, 40);
+
+            if (plate) document.getElementById('carPlate').value = plate;
+            if (model) document.getElementById('carModel').value = model;
+
+            if (plate || model) {
+                showCustomAlert('✅ AI 识别成功，已自动填入车牌和车型，请核对。');
+            } else {
+                showCustomAlert('⚠️ 没能识别出车牌，请手动填写。\n\nAI原话：\n' + String(result.raw || '').slice(0, 200));
+            }
+
+        } catch (err) {
+            console.error(err);
+            showCustomAlert('❌ 识别失败：' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '📷 AI 拍照识别车牌/车型';
+            input.value = '';
+        }
+    }
+
+    // === 表单操作 ===
+    document.getElementById('addBtn').addEventListener('click', () => {
+        const carPlate = document.getElementById('carPlate').value.trim();
+        const carModel = document.getElementById('carModel').value.trim();
+        if (!carPlate) { showCustomAlert('请先填写或识别车牌号！'); return; }
+
+        const brand = document.getElementById('itemBrand').value.trim().slice(0, 40);
+        const part = document.getElementById('itemPart').value.trim().slice(0, 40);
+        const price = parseMoney(document.getElementById('itemPrice').value);
+        let warrantyText = '';
+        const wNum = document.getElementById('itemWarrantyNum').value.trim();
+        const wUnit = document.getElementById('itemWarrantyUnit').value;
+
+        if (wUnit === '终身') warrantyText = '终身质保';
+        else if (wNum) warrantyText = wNum + wUnit;
+
+        if (!part) { showCustomAlert('请输入施工部位！'); return; }
+        if (!Number.isFinite(price)) { showCustomAlert('请输入有效的价格（0 ~ 1000 万，最多两位小数）！'); return; }
+
+        currentItems.push({
+            category: document.getElementById('itemCategory').value,
+            brand: brand,
+            part: part,
+            price: price,
+            warranty: warrantyText.slice(0, 20)
+        });
+
+        document.getElementById('itemBrand').value = '';
+        document.getElementById('itemPart').value = '';
+        document.getElementById('itemPrice').value = '';
+        renderList();
+    });
+
+    function renderList() {
+        const emptyTip = document.getElementById('emptyTip'), listTable = document.getElementById('listTable'), listBody = document.getElementById('listBody'), totalPriceBox = document.getElementById('totalPriceBox');
+        if (currentItems.length === 0) { emptyTip.style.display = 'block'; listTable.style.display = 'none'; totalPriceBox.style.display = 'none'; return; }
+        emptyTip.style.display = 'none'; listTable.style.display = 'table'; totalPriceBox.style.display = 'block';
+        listBody.innerHTML = ''; let total = 0;
+
+        currentItems.forEach((item, index) => {
+            total += item.price;
+            const brandHtml = item.brand ? `<span style="color:#3b82f6; font-size:12px;">[${esc(item.brand)}]</span> ` : '';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div style="font-weight:bold; margin-bottom:2px;">${esc(item.category)}</div>
+                    <div style="color:#888; font-size:11px;">${brandHtml}${esc(item.part)} | 质保${esc(item.warranty)}</div>
+                </td>
+                <td style="color:#e6a23c; font-weight:bold;">￥${esc(fmtMoney(item.price))}</td>
+                <td class="btn-delete" data-index="${index}">删除</td>
+            `;
+            tr.querySelector('.btn-delete').onclick = () => deleteItem(index);
+            listBody.appendChild(tr);
+        });
+        totalPriceBox.textContent = '总计: ￥' + fmtMoney(total) + ' 元';
+    }
+
+    window.deleteItem = function(index) { if (confirm('确定要删除这个项目吗？')) { currentItems.splice(index, 1); renderList(); } };
+
+    // === 保存到云端 ===
+    async function saveOrder() {
+        const carPlate = document.getElementById('carPlate').value.trim();
+        const carModel = document.getElementById('carModel').value.trim();
+        if (!carPlate) { showCustomAlert('请输入车牌号！'); return; }
+        if (currentItems.length === 0) { showCustomAlert('请至少添加一个施工项目！'); return; }
+
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = '☁️ 正在上传到云端...';
+
+        try {
+            const total = currentItems.reduce((sum, item) => sum + item.price, 0);
+            if (!Number.isFinite(total) || total < 0 || total > 1e9) {
+                throw new Error('金额超出允许范围，请检查清单');
+            }
+            if (!currentUserId) throw new Error('登录状态已失效，请重新登录');
+
+            // 列表页只需要封面图，避免每次把 6 张 base64 全拉下来
+            const coverPhoto = currentPhotos.find(p => p) || null;
+
+            const { error } = await supabaseClient
+                .from('work_orders')
+                .insert([{
+                    user_id: currentUserId,
+                    username: currentUser,
+                    car_plate: carPlate.slice(0, 20),
+                    car_model: carModel.slice(0, 40),
+                    total_amount: Math.round(total * 100) / 100,
+                    items: currentItems,
+                    photos: currentPhotos,
+                    cover_photo: coverPhoto
+                }]);
+
+            if (error) throw error;
+
+            saveBtn.disabled = false;
+            saveBtn.textContent = '💾 保存到云端';
+            showCustomAlert('✅ 单据已成功保存到云端！');
+            resetForm();
+
+        } catch (error) {
+            console.error(error);
+            saveBtn.disabled = false;
+            saveBtn.textContent = '💾 保存到云端';
+            showCustomAlert('保存失败：' + error.message);
+        }
+    }
+
+    // === 历史列表与详情 ===
+
+    // 关键词归一：去掉空格/横杠并转大写，兼容「粤A 12345」「粤A-12345」等写法
+    function normalizePlateKeyword(value) {
+        return String(value == null ? '' : value).replace(/[\s\-_]/g, '').toUpperCase();
+    }
+
+    // 通用查询：优先匹配车牌，其次用车型 / 施工项目兜底
+    function matchOrderKeyword(order, kw) {
+        if (!kw) return true;
+        if (normalizePlateKeyword(order.car_plate).indexOf(kw) !== -1) return true;
+        const lower = kw.toLowerCase();
+        if (String(order.car_model || '').toLowerCase().indexOf(lower) !== -1) return true;
+        const items = Array.isArray(order.items) ? order.items : [];
+        return items.some(it => String(it.category || '').toLowerCase().indexOf(lower) !== -1);
+    }
+
+    function updateHistoryCount(shown, total) {
+        const box = document.getElementById('historyCount');
+        if (!box) return;
+        const kw = historyKeyword.trim();
+        box.textContent = kw ? `查询「${kw}」：${shown} / ${total} 条订单` : `共 ${total} 条订单`;
+    }
+
+    function onPlateSearchInput() {
+        const input = document.getElementById('plateSearchInput');
+        const clearBtn = document.getElementById('plateSearchClear');
+        const value = input ? input.value : '';
+        if (clearBtn) clearBtn.classList.toggle('show', value.length > 0);
+        historyKeyword = value;
+        // 已有缓存就纯前端过滤，输入过程中不重复请求网络
+        renderHistoryList(false);
+    }
+
+    function doPlateSearch() {
+        const input = document.getElementById('plateSearchInput');
+        historyKeyword = input ? input.value : '';
+        renderHistoryList(false);
+    }
+
+    function clearPlateSearch() {
+        const input = document.getElementById('plateSearchInput');
+        const clearBtn = document.getElementById('plateSearchClear');
+        if (input) { input.value = ''; input.focus(); }
+        if (clearBtn) clearBtn.classList.remove('show');
+        historyKeyword = '';
+        renderHistoryList(false);
+    }
+
+    // 事件委托：订单列表会被反复重绘，把点击绑在容器上最稳，
+    // 任何一次重绘都不会出现「按钮还在但点了没反应」
+    (function bindHistoryListClicks() {
+        const list = document.getElementById('historyList');
+        if (!list) return;
+        list.addEventListener('click', (e) => {
+            const target = e.target;
+            if (!target || !target.closest) return;
+            const viewBtn = target.closest('[data-view]');
+            if (viewBtn) { openOrderDetail(viewBtn, viewBtn.dataset.view); return; }
+            const delBtn = target.closest('[data-del]');
+            if (delBtn) { deleteOrder(delBtn.dataset.del); }
+        });
+    })();
+
+    // 纯前端渲染：按 historyKeyword 过滤 allOrdersCache
+    function renderHistoryRows() {
+        const list = document.getElementById('historyList');
+        if (!list) return;
+
+        const rows = Array.isArray(allOrdersCache) ? allOrdersCache : [];
+        const kw = normalizePlateKeyword(historyKeyword);
+        const filtered = rows.filter(order => matchOrderKeyword(order, kw));
+
+        list.innerHTML = '';
+        updateHistoryCount(filtered.length, rows.length);
+
+        if (filtered.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'text-align:center; color:#999; padding:20px;';
+            empty.textContent = kw ? `没有匹配「${historyKeyword.trim()}」的订单记录` : '暂无订单记录';
+            list.appendChild(empty);
+            return;
+        }
+
+        filtered.forEach(order => {
+                const div = document.createElement('div'); div.className = 'history-item';
+                const coverSrc = safeImgSrc(order.cover_photo);
+                const coverHtml = coverSrc
+                    ? `<img src="${esc(coverSrc)}" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; margin-right: 10px;">`
+                    : '';
+                const dateStr = new Date(order.created_at).toLocaleString();
+
+                const plate = order.car_plate || '未填写';
+                const model = order.car_model || '';
+                const items = Array.isArray(order.items) ? order.items : [];
+                const firstItem = items.length > 0 ? (items[0].category || '无项目') : '无项目';
+                const extraCount = items.length > 1 ? ` (共${items.length}项)` : '';
+
+                div.innerHTML = `
+                    <div style="display: flex; align-items: center; width: 100%;">
+                        ${coverHtml}
+                        <div class="history-info" style="flex: 1;">
+                            <h4><span class="plate-tag">${esc(plate)}</span>${esc(model)}</h4>
+                            <p>${esc(firstItem)}${esc(extraCount)} | ￥${esc(fmtMoney(order.total_amount))}元</p>
+                            <p class="time">${esc(dateStr)}</p>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <button class="btn-view" data-view="${esc(order.id)}">查看</button>
+                            <button class="btn-del-order" data-del="${esc(order.id)}">删除</button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(div);
+        });
+    }
+
+    // 从云端拉取订单后渲染；forceRefresh=false 时直接用缓存渲染（查询结果过滤用）
+    async function renderHistoryList(forceRefresh = true) {
+        const list = document.getElementById('historyList');
+        if (!list) return;
+
+        if (!forceRefresh && Array.isArray(allOrdersCache) && allOrdersCache.length > 0) {
+            renderHistoryRows();
+            return;
+        }
+
+        list.textContent = '正在从云端获取数据...';
+
+        try {
+            if (!currentUserId) throw new Error('登录状态已失效，请重新登录');
+
+            // 只取列表需要的字段（不含 photos），并显式按 user_id 过滤，RLS 之外再加一层保险
+            const { data: orders, error } = await supabaseClient
+                .from('work_orders')
+                .select('id, created_at, car_plate, car_model, total_amount, items, cover_photo')
+                .eq('user_id', currentUserId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            allOrdersCache = Array.isArray(orders) ? orders : [];
+            renderHistoryRows();
+        } catch (error) {
+            console.error(error);
+            allOrdersCache = [];
+            list.innerHTML = '';
+            const errBox = document.createElement('div');
+            errBox.style.cssText = 'text-align:center; color:#ef4444; padding:20px;';
+            errBox.textContent = '获取失败：' + (error.message || '未知错误');
+            list.appendChild(errBox);
+            updateHistoryCount(0, 0);
+        }
+    }
+
+    async function deleteOrder(id) {
+        if (!id) return;
+        if (!confirm('⚠️ 确定要永久删除这条订单吗？删除后无法恢复！')) return;
+        try {
+            // 必须同时匹配 id 和 user_id，否则 RLS 之外前端也可能误删他人数据
+            const { error, count } = await supabaseClient
+                .from('work_orders')
+                .delete({ count: 'exact' })
+                .eq('id', id)
+                .eq('user_id', currentUserId);
+
+            if (error) throw error;
+            if (!count) {
+                showCustomAlert('删除失败：订单不存在，或你没有权限删除');
+                return;
+            }
+            showCustomAlert('✅ 订单已删除');
+            renderHistoryList();
+        } catch (e) {
+            console.error(e);
+            showCustomAlert('删除失败，请稍后重试');
+        }
+    }
+
+    // 点击「查看」：先给按钮一个「加载中」的即时反馈，
+    // 网络慢时不至于看起来像按钮按不动，失败也一定有提示，不再静默
+    function openOrderDetail(btn, id) {
+        if (!id) { showCustomAlert('订单标识缺失，请重新打开订单记录再试'); return; }
+        if (btn) { btn.disabled = true; btn.textContent = '加载中...'; }
+        const restore = () => { if (btn) { btn.disabled = false; btn.textContent = '查看'; } };
+        Promise.resolve()
+            .then(() => viewOrderDetail(id))
+            .then(restore, (err) => {
+                restore();
+                console.error(err);
+                showCustomAlert('打开订单失败：' + ((err && err.message) || '未知错误'));
+            });
+    }
+
+    async function viewOrderDetail(id) {
+        if (!id) { showCustomAlert('订单标识缺失，无法查看详情'); return; }
+
+        // 先按 id 回表取完整数据（含照片），避免把整条 JSON 塞进 onclick
+        let order = null;
+        try {
+            const { data, error } = await supabaseClient
+                .from('work_orders')
+                .select('id, created_at, car_plate, car_model, total_amount, items, photos')
+                .eq('id', id)
+                .eq('user_id', currentUserId)
+                .maybeSingle();
+
+            if (error) throw error;
+            order = data;
+        } catch (e) {
+            console.error(e);
+            showCustomAlert('获取订单详情失败，请稍后重试');
+            return;
+        }
+
+        if (!order) {
+            showCustomAlert('订单不存在，或你没有权限查看');
+            return;
+        }
+
+        currentDetailOrder = order;
+        document.getElementById('dCreateTime').textContent = new Date(order.created_at).toLocaleString();
+        document.getElementById('dCarPlate').textContent = order.car_plate || '未填写车牌';
+        document.getElementById('dCarModel').textContent = order.car_model || '';
+
+        const listContainer = document.getElementById('dListContainer');
+        listContainer.innerHTML = '';
+
+        const items = Array.isArray(order.items) ? order.items : [];
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'detail-item-card';
+            div.innerHTML = `
+                <div class="detail-item-left">
+                    <div class="detail-item-title">${esc(item.category)}</div>
+                    <div class="detail-item-meta">品牌：${esc(item.brand || '无')} ｜ 施工部位：${esc(item.part || '无')}</div>
+                </div>
+                <div class="detail-item-right">
+                    <div class="detail-item-price">￥${esc(fmtMoney(item.price))}</div>
+                    <div class="detail-item-warranty">质保${esc(item.warranty)}</div>
+                </div>
+            `;
+            listContainer.appendChild(div);
+        });
+
+        document.getElementById('dTotalPrice').textContent = '总计: ￥' + fmtMoney(order.total_amount) + ' 元';
+
+        const grid = document.getElementById('detailPhotoGrid');
+        grid.innerHTML = '';
+        const emptyImg = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+        for (let i = 0; i < 6; i++) {
+            const raw = (order.photos && typeof order.photos[i] === 'string') ? order.photos[i] : '';
+            const photoSrc = safeImgSrc(raw) || emptyImg;
+            const hasPhoto = photoSrc !== emptyImg;
+            const label = i < 3 ? `前 ${i+1}` : `后 ${i-3+1}`;
+            const box = document.createElement('div');
+            box.className = 'photo-box';
+            box.style.cursor = hasPhoto ? 'zoom-in' : 'default';
+            box.onclick = () => { if (hasPhoto) openLightbox(photoSrc); };
+
+            const img = document.createElement('img');
+            img.src = photoSrc;
+            img.style.display = 'block';
+            if (!hasPhoto) img.style.opacity = '0.2';
+
+            const tag = document.createElement('span');
+            tag.style.cssText = 'position:absolute; bottom:4px; background:rgba(0,0,0,0.5); color:white; font-size:10px; padding:2px 4px; border-radius:4px; z-index:3; pointer-events:none;';
+            tag.textContent = label;
+
+            box.appendChild(img);
+            box.appendChild(tag);
+            grid.appendChild(box);
+        }
+
+        document.getElementById('createView').style.display = 'none';
+        document.getElementById('historyModal').style.display = 'none';
+        document.getElementById('detailView').style.display = 'block';
+        window.scrollTo(0, 0);
+    }
+
+    // === 纯文本打印 ===
+    function showTextPrint() {
+        if (!currentDetailOrder) return;
+
+        const order = currentDetailOrder;
+        const dateStr = new Date(order.created_at).toLocaleString();
+        let itemsText = '';
+
+        const items = Array.isArray(order.items) ? order.items : [];
+        items.forEach((item, index) => {
+            itemsText += `${index + 1}. 【${item.category}】\n`;
+            itemsText += `   品牌：${item.brand || '无'} ｜ 部位：${item.part || '无'}\n`;
+            itemsText += `   价格：￥${fmtMoney(item.price)} 元 (质保${item.warranty})\n\n`;
+        });
+
+        const printContent = `
+车辆施工单
+==================================
+车牌号：${order.car_plate || '未填'}
+车型：${order.car_model || '未填'}
+施工时间：${dateStr}
+==================================
+施工项目明细：
+${itemsText}----------------------------------
+总计金额：￥${fmtMoney(order.total_amount)} 元
+==================================
+
+(此单据由系统自动生成)
+        `;
+
+        document.getElementById('textPrintArea').value = printContent;
+        document.getElementById('textPrintModal').style.display = 'flex';
+    }
+
+    function closeTextModal() {
+        document.getElementById('textPrintModal').style.display = 'none';
+    }
+
+    function copyTextToClipboard() {
+        const textArea = document.getElementById('textPrintArea');
+        textArea.select();
+        textArea.setSelectionRange(0, 99999);
+        try {
+            document.execCommand('copy');
+            closeTextModal();
+            showCustomAlert('✅ 文本已复制！可以粘贴到微信发给客户了。');
+        } catch (err) {
+            showCustomAlert('❌ 复制失败，请长按文本框手动全选复制。');
+        }
+    }
+
+    // === 汇总单保存为图片 ===
+    function downloadAllOrdersAsImage() {
+        if (!allOrdersCache || allOrdersCache.length === 0) {
+            showCustomAlert('暂无订单记录，无法打印汇总单');
+            return;
+        }
+
+        showCustomAlert('⏳ 正在生成汇总单图片，请稍等...');
+
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.top = '0';
+        tempContainer.style.width = '800px';
+        tempContainer.style.background = '#ffffff';
+        tempContainer.style.padding = '30px';
+
+        let htmlContent = `
+            <div style="text-align: center; font-size: 28px; font-weight: bold; margin-bottom: 20px;">已施工订单汇总单</div>
+            <div style="text-align: right; font-size: 14px; color: #666; margin-bottom: 20px;">导出时间：${new Date().toLocaleString()}</div>
+        `;
+
+        allOrdersCache.forEach((order, index) => {
+            const dateStr = new Date(order.created_at).toLocaleString();
+            const totalAmount = fmtMoney(order.total_amount);
+            const orderItems = Array.isArray(order.items) ? order.items : [];
+
+            let itemsHtml = orderItems.map(item => `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px;">
+                    <span>${esc(item.category)} | 品牌：${esc(item.brand || '无')} | 部位：${esc(item.part || '无')}</span>
+                    <span style="font-weight: bold; color: #d97706;">￥${esc(fmtMoney(item.price))}元 (质保${esc(item.warranty)})</span>
+                </div>
+            `).join('');
+
+            htmlContent += `
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 16px;">
+                        <span>车牌：${esc(order.car_plate || '未填')} | 车型：${esc(order.car_model || '未填')}</span>
+                        <span style="color: #3b82f6;">${esc(dateStr)}</span>
+                    </div>
+                    <div style="margin-bottom: 10px; padding: 10px; background: #f8fafc; border-radius: 4px;">
+                        ${itemsHtml}
+                    </div>
+                    <div style="text-align: right; font-weight: bold; font-size: 16px; color: #f59e0b;">
+                        小计：￥${totalAmount}元
+                    </div>
+                </div>
+            `;
+        });
+
+        const grandTotal = allOrdersCache.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0);
+        htmlContent += `
+            <div style="text-align: right; font-size: 20px; font-weight: bold; margin-top: 20px; border-top: 2px solid #333; padding-top: 10px;">
+                总计金额：<span style="color: #ef4444;">￥${esc(fmtMoney(grandTotal))}元</span>
+            </div>
+        `;
+
+        tempContainer.innerHTML = htmlContent;
+        document.body.appendChild(tempContainer);
+
+        html2canvas(tempContainer, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: false
+        }).then(canvas => {
+            document.body.removeChild(tempContainer);
+            closeCustomAlert();
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.9);
+            const link = document.createElement('a');
+            link.download = '订单汇总_' + new Date().getTime() + '.jpg';
+            link.href = imgData;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showCustomAlert('✅ 汇总单已生成！请在相册或下载目录中查看。');
+        }).catch(err => {
+            if(document.body.contains(tempContainer)) document.body.removeChild(tempContainer);
+            closeCustomAlert();
+            console.error('生成汇总图片失败:', err);
+            showCustomAlert('❌ 生成汇总图片失败，请重试');
+        });
+    }
+
+    function resetForm() {
+        document.getElementById('carPlate').value = '';
+        document.getElementById('carModel').value = '';
+        for (let i = 0; i < 6; i++) {
+            const img = document.getElementById('img' + i);
+            img.src = '';
+            img.style.display = 'none';
+            const input = img.parentElement.querySelector('input');
+            if(input) input.value = '';
+        }
+        currentPhotos = ['', '', '', '', '', ''];
+        currentItems = [];
+        renderList();
+    }
+</script>
+</body>
+</html>
