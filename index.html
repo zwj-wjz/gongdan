@@ -310,10 +310,15 @@
     // ========================================================
     // Supabase 配置
     // publishable key 本来就是公开的，真正保护数据的是数据库 RLS 策略
-    // 硅基流动的密钥已移到服务端（api/ai.js），前端不再持有任何 Access Key
+    // 硅基流动的密钥只存在服务端，前端永远拿不到
     // ========================================================
     const SUPABASE_URL = 'https://umatcwaodotqpttbuwew.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_ULquGaSNnY9G11RJcKLx_g_Xmcev2ig';
+
+    // AI 识别交给 Supabase Edge Function（超时上限 150 秒，比各家免费版函数宽得多）。
+    // 好处：前端可以是纯静态托管（Cloudflare Pages / 任意静态空间），
+    // 不再依赖 Vercel、Netlify 这类在国内访问不稳的平台。
+    const AI_ENDPOINT = 'https://umatcwaodotqpttbuwew.supabase.co/functions/v1/ai';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
     });
@@ -606,7 +611,7 @@
         }
     }
 
-    // === 核心功能：AI 拍照识别（经 /api/ai 代理，密钥不下发到浏览器） ===
+    // === 核心功能：AI 拍照识别（经 AI_ENDPOINT 代理，密钥不下发到浏览器） ===
     function startAIScan() {
         document.getElementById('aiCameraInput').click();
     }
@@ -636,11 +641,11 @@
             });
             if (!base64Data) throw new Error('图片读取失败，请重新拍摄');
 
-            // 2. 交给后端代理转发，密钥只存在服务端环境变量里
+            // 2. 交给服务端代理转发，密钥只存在服务端环境变量里
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) throw new Error('登录已失效，请重新登录');
 
-            const response = await fetch('/api/ai', {
+            const response = await fetch(AI_ENDPOINT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
