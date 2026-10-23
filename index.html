@@ -51,6 +51,17 @@
         .photo-box span { color: #94a3b8; font-size: 11px; z-index: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
         .photo-box span i { font-size: 20px; font-style: normal; }
 
+        /* 施工照片：删除按钮（有图时才显示） */
+        .photo-del { position: absolute; top: 3px; right: 3px; z-index: 3; width: 24px; height: 24px; padding: 0; display: none; align-items: center; justify-content: center; border: none; border-radius: 50%; background: rgba(15, 23, 42, 0.65); color: #fff; font-size: 13px; line-height: 1; cursor: pointer; }
+        .photo-box.has-photo .photo-del { display: flex; }
+        .photo-del:active { background: rgba(15, 23, 42, 0.85); }
+
+        /* AI 识别：图片来源选择弹窗 */
+        .ai-source-content { max-width: 340px; text-align: center; }
+        .ai-source-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; margin-bottom: 10px; border: none; border-radius: 10px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
+        .ai-source-btn.ghost { background: #f1f5f9; color: #334155; box-shadow: none; }
+        .ai-source-cancel { width: 100%; padding: 11px; border: none; border-radius: 10px; background: transparent; color: #94a3b8; font-size: 14px; cursor: pointer; }
+
         .btn-add { background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
 
         .list-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
@@ -162,8 +173,8 @@
             <div class="card">
                 <div class="section-title">1. 添加施工项目</div>
 
-                <!-- AI 拍照识别按钮 -->
-                <button class="btn-ai-scan" id="aiScanBtn" onclick="startAIScan()">📷 AI 拍照识别车牌/车型</button>
+                <!-- AI 拍照 / 相册识别按钮 -->
+                <button class="btn-ai-scan" id="aiScanBtn" onclick="startAIScan()">📷 AI 识别车牌/车型（拍照 / 相册）</button>
 
                 <!-- 车牌与车型 -->
                 <div class="form-group"><label class="form-label" style="color:#3b82f6; font-weight:bold;">车牌号：</label><input type="text" id="carPlate" class="form-control" placeholder="例如：川C·D61785" style="font-weight:bold;"></div>
@@ -210,14 +221,14 @@
                 </table>
                 <div id="totalPriceBox" class="total-price" style="display: none;">总计: ￥0 元</div>
 
-                <div class="section-title">3. 施工拍照留存 (支持多选)</div>
+                <div class="section-title">3. 施工拍照留存 (支持多选 / 可删除)</div>
                 <div class="photo-grid">
-                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img0" src=""></label>
-                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img1" src=""></label>
-                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img2" src=""></label>
-                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img3" src=""></label>
-                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img4" src=""></label>
-                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img5" src=""></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img0" alt=""><button type="button" class="photo-del" title="删除这张照片" onclick="deletePhoto(0, event)">✕</button></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img1" alt=""><button type="button" class="photo-del" title="删除这张照片" onclick="deletePhoto(1, event)">✕</button></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img2" alt=""><button type="button" class="photo-del" title="删除这张照片" onclick="deletePhoto(2, event)">✕</button></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img3" alt=""><button type="button" class="photo-del" title="删除这张照片" onclick="deletePhoto(3, event)">✕</button></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img4" alt=""><button type="button" class="photo-del" title="删除这张照片" onclick="deletePhoto(4, event)">✕</button></label>
+                    <label class="photo-box"><input type="file" accept="image/*" multiple onchange="previewMultipleImages(this)"><span><i>📷</i>点击上传</span><img id="img5" alt=""><button type="button" class="photo-del" title="删除这张照片" onclick="deletePhoto(5, event)">✕</button></label>
                 </div>
             </div>
 
@@ -257,8 +268,19 @@
     </div>
 </div>
 
-<!-- 隐藏的拍照输入框 (用于AI识别) -->
+<!-- 隐藏的输入框 (用于AI识别：拍照 / 相册) -->
 <input type="file" id="aiCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="processAIScan(this)">
+<input type="file" id="aiAlbumInput" accept="image/*" style="display: none;" onchange="processAIScan(this)">
+
+<!-- AI 识别：选择图片来源 -->
+<div class="modal-overlay" id="aiSourceModal" onclick="closeAISourceModal()">
+    <div class="modal-content ai-source-content" onclick="event.stopPropagation()">
+        <h3 style="margin-bottom: 16px; font-size: 16px;">识别车牌 / 车型</h3>
+        <button type="button" class="ai-source-btn" onclick="pickAISource('camera')">📷 拍照识别</button>
+        <button type="button" class="ai-source-btn ghost" onclick="pickAISource('album')">🖼️ 从相册选择</button>
+        <button type="button" class="ai-source-cancel" onclick="closeAISourceModal()">取消</button>
+    </div>
+</div>
 
 <div class="modal-overlay" id="historyModal">
     <div class="modal-content">
@@ -573,6 +595,33 @@
         return true;
     }
 
+    // === 施工照片：写入 / 删除 ===
+    function setPhoto(index, dataUrl) {
+        const img = document.getElementById('img' + index);
+        if (!img) return;
+        if (dataUrl) {
+            img.src = dataUrl;
+            img.style.display = 'block';
+            img.parentElement.classList.add('has-photo');
+        } else {
+            img.removeAttribute('src');
+            img.style.display = 'none';
+            img.parentElement.classList.remove('has-photo');
+            const input = img.parentElement.querySelector('input[type="file"]');
+            if (input) input.value = '';
+        }
+        currentPhotos[index] = dataUrl || '';
+    }
+
+    function deletePhoto(index, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (!currentPhotos[index]) return;
+        setPhoto(index, '');
+    }
+
     async function previewMultipleImages(input) {
         if (input.files && input.files.length > 0) {
             if (input.files.length > 6) {
@@ -596,9 +645,7 @@
                         reader.onload = async function(e) {
                             const compressedData = await compressImage(e.target.result);
                             if (compressedData) {
-                                document.getElementById('img' + i).src = compressedData;
-                                document.getElementById('img' + i).style.display = 'block';
-                                currentPhotos[i] = compressedData;
+                                setPhoto(i, compressedData);
                             }
                             resolve();
                         };
@@ -612,8 +659,23 @@
     }
 
     // === 核心功能：AI 拍照识别（经 AI_ENDPOINT 代理，密钥不下发到浏览器） ===
+    const AI_BTN_TEXT = '📷 AI 识别车牌/车型（拍照 / 相册）';
+
     function startAIScan() {
-        document.getElementById('aiCameraInput').click();
+        document.getElementById('aiSourceModal').style.display = 'flex';
+    }
+
+    function closeAISourceModal() {
+        document.getElementById('aiSourceModal').style.display = 'none';
+    }
+
+    function pickAISource(source) {
+        closeAISourceModal();
+        const btn = document.getElementById('aiScanBtn');
+        if (btn.disabled) return;
+        // 相册不加 capture，拍照强制后置摄像头
+        const input = document.getElementById(source === 'album' ? 'aiAlbumInput' : 'aiCameraInput');
+        if (input) input.click();
     }
 
     async function processAIScan(input) {
@@ -686,7 +748,7 @@
             showCustomAlert('❌ 识别失败：' + err.message);
         } finally {
             btn.disabled = false;
-            btn.textContent = '📷 AI 拍照识别车牌/车型';
+            btn.textContent = AI_BTN_TEXT;
             input.value = '';
         }
     }
@@ -1220,11 +1282,7 @@ ${itemsText}----------------------------------
         document.getElementById('carPlate').value = '';
         document.getElementById('carModel').value = '';
         for (let i = 0; i < 6; i++) {
-            const img = document.getElementById('img' + i);
-            img.src = '';
-            img.style.display = 'none';
-            const input = img.parentElement.querySelector('input');
-            if(input) input.value = '';
+            setPhoto(i, '');
         }
         currentPhotos = ['', '', '', '', '', ''];
         currentItems = [];
